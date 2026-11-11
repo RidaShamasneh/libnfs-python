@@ -74,7 +74,7 @@ class NFSFH(object):
         self._nfsfh = new_NFSFileHandle()
         _status = nfs_open(self._nfs, path, _mode, self._nfsfh)
         if _status == -errno.ENOENT and _mode & os.O_CREAT:
-            _status = nfs_create(self._nfs, path, _mode, 0o664, self._nfsfh)
+            _status = nfs_open2(self._nfs, path, _mode, 0o664, self._nfsfh)
         if _status == -errno.ENOENT:
                 raise IOError(errno.ENOENT, 'No such file or directory');
         if _status != 0:
@@ -88,7 +88,16 @@ class NFSFH(object):
     def __del__(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return False
+
     def close(self):
+        if self._closed:
+            return
         if self._need_flush:
             self.flush()
         nfs_close(self._nfs, self._nfsfh)
@@ -101,11 +110,13 @@ class NFSFH(object):
             raise IOError('Trying to write on file open for reading');
 
         if not isinstance(data, bytearray):
-            if self._codec:
+            if isinstance(data, bytes):
+                data = bytearray(data)
+            elif self._codec and not self._binary:
                 data = bytearray(data.encode(self._codec))
             else:
                 data = bytearray(data)
-        nfs_write(self._nfs, self._nfsfh, len(data), data)
+        nfs_write(self._nfs, self._nfsfh, data, len(data))
         self._need_flush = True
 
     def read(self, size=-1):
@@ -118,7 +129,7 @@ class NFSFH(object):
             size = _st.nfs_size - _pos
 
         buf = bytearray(size)
-        count = nfs_read(self._nfs, self._nfsfh, len(buf), buf)
+        count = nfs_read(self._nfs, self._nfsfh, buf, len(buf))
         if self._binary:
             return buf[:count]
 
