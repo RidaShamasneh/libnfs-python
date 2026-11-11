@@ -48,13 +48,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build the wheels
+      - name: Build the wheels (Python 3.8 and later)
         uses: pypa/cibuildwheel@v2.23.3
+        env:
+          CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+
+      # Current cibuildwheel releases cannot build for Python 3.6 and 3.7.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build the wheels (Python 3.6 and 3.7)
+        uses: pypa/cibuildwheel@v2.11.4
+        with:
+          output-dir: wheelhouse-old
+        env:
+          CIBW_BUILD: "cp36-* cp37-*"
 
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.arch }}
-          path: wheelhouse/*.whl
+          path: |
+            wheelhouse/*.whl
+            wheelhouse-old/*.whl
 
   publish-testpypi:
     name: Publish to TestPyPI

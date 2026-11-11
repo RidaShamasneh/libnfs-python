@@ -67,6 +67,8 @@ class NFSFH:
 
         self._nfsfh = new_NFSFileHandle()
         _status = nfs_open(self._nfs, path, _mode, self._nfsfh)
+        if _status == -errno.ENOENT and _mode & os.O_CREAT:
+            _status = nfs_open2(self._nfs, path, _mode, 0o664, self._nfsfh)
         if _status == -errno.ENOENT:
                 raise IOError(errno.ENOENT, 'No such file or directory');
         if _status != 0:

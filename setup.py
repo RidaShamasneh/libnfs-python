@@ -1,42 +1,32 @@
 #!/usr/bin/env python3
-from os import environ
-
+from setuptools import setup, Extension
 try:
-    from setuptools import setup, Extension
-    from setuptools.command.build_ext import build_ext
+    from setuptools.command.build import build
 except ImportError:
-    from distutils.core import setup, Extension
-    from distutils.command.build_ext import build_ext
+    # setuptools older than 62.4, the last series that supports Python 3.6
+    from distutils.command.build import build
+from setuptools.command.install import install
 
 # Although setuptools supports swig, it fails to copy the generated
 # Python wrapper: http://stackoverflow.com/questions/12491328
 
-cmdclass = { }
-
-try:
-    from setuptools.command.install import install
-except ImportError:
-    pass
-else:
-    class Install(install):
-        def run(self):
-            self.run_command('build_ext')
-            install.run(self)
-    cmdclass['install'] = Install
-
-from distutils.command.build import build
+class Install(install):
+    def run(self):
+        self.run_command('build_ext')
+        install.run(self)
 
 class Build(build):
     def run(self):
         self.run_command('build_ext')
         build.run(self)
-cmdclass['build'] = Build
+
+cmdclass = { 'install': Install, 'build': Build }
 
 name = 'libnfs'
 # Matches the libnfs release bundled in the wheels (LIBNFS_REF in
 # .github/scripts/build-libnfs.sh). For a bindings-only fix on top of the same
 # libnfs, use a post-release such as 8.0.0.post1.
-version = '8.0.0'
+version = '8.0.0.post1'
 readme = 'README'
 download_url = "https://github.com/sahlberg/libnfs-python/libnfs-" + \
                                                           version + ".tar.gz"

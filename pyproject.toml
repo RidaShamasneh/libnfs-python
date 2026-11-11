@@ -5,7 +5,9 @@ requires = ["setuptools", "wheel", "swig"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
+# The release workflow builds cp36-cp37 with cibuildwheel 2.11 and the rest with
+# a current cibuildwheel, because current releases no longer support 3.6/3.7.
+build = "cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
 skip = "*-musllinux_*"
 build-verbosity = 1
 # Build the C libnfs library once per container; the wheel then bundles it.
@@ -19,3 +21,9 @@ manylinux-aarch64-image = "manylinux_2_28"
 environment = { CFLAGS = "-I/usr/local/include", LDFLAGS = "-L/usr/local/lib" }
 # auditwheel copies libnfs.so into the wheel; it must be able to find it.
 repair-wheel-command = "LD_LIBRARY_PATH=/usr/local/lib auditwheel repair -w {dest_dir} {wheel}"
+
+# The manylinux_2_28 images no longer ship Python 3.6/3.7.
+[[tool.cibuildwheel.overrides]]
+select = "cp3[67]-*"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
