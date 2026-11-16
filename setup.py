@@ -33,12 +33,13 @@ class Build(build):
 cmdclass['build'] = Build
 
 name = 'libnfs'
-version = '1.0'
-release = '5'
-versrel = version + '-' + release
+# Matches the libnfs release bundled in the wheels (LIBNFS_REF in
+# .github/scripts/build-libnfs.sh). For a bindings-only fix on top of the same
+# libnfs, use a post-release such as 8.0.0.post1.
+version = '8.0.0'
 readme = 'README'
 download_url = "https://github.com/sahlberg/libnfs-python/libnfs-" + \
-                                                          versrel + ".tar.gz"
+                                                          version + ".tar.gz"
 with open(readme, "r") as f:
     long_description = f.read()
 
@@ -52,7 +53,7 @@ _libnfs = Extension(name='libnfs._libnfs',
 
 
 setup(name = name,
-      version = versrel,
+      version = version,
       description = 'NFS client for Python.',
       long_description = long_description,
       long_description_content_type = 'text/plain',
