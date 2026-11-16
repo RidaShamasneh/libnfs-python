@@ -34,7 +34,7 @@ cmdclass['build'] = Build
 
 name = 'libnfs'
 version = '1.0'
-release = '4'
+release = '5'
 versrel = version + '-' + release
 readme = 'README'
 download_url = "https://github.com/sahlberg/libnfs-python/libnfs-" + \

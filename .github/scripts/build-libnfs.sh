@@ -2,7 +2,7 @@
 # Build and install the C libnfs library into /usr/local (manylinux container).
 set -euxo pipefail
 
-LIBNFS_REF="${LIBNFS_REF:-master}"
+LIBNFS_REF="${LIBNFS_REF:-libnfs-8.0.0}"
 
 yum install -y cmake
 git clone --depth 1 --branch "$LIBNFS_REF" \
