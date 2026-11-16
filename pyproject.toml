@@ -1,7 +1,9 @@
 [build-system]
 # swig is on PyPI as a prebuilt binary, so building from the sdist no
 # longer needs a system SWIG.
-requires = ["setuptools", "wheel", "swig"]
+# The swig launcher script needs Python 3.7+; the Python 3.6 wheels use a swig
+# that .github/scripts/build-libnfs.sh puts on PATH instead.
+requires = ["setuptools", "wheel", "swig; python_version >= '3.7'"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]

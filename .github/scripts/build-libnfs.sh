@@ -7,7 +7,9 @@ LIBNFS_REF="${LIBNFS_REF:-libnfs-8.0.0}"
 # CMake from PyPI: the CentOS 7 based manylinux2014 image has a version that
 # is too old for libnfs.
 PIP="$(ls /opt/python/cp3*/bin/pip | tail -1)"
-"$PIP" install cmake
+"$PIP" install cmake swig
+# Used by the Python 3.6 builds, which cannot run the swig launcher themselves.
+ln -sf "$(dirname "$PIP")/swig" /usr/local/bin/swig
 export PATH="$(dirname "$PIP"):$PATH"
 git clone --depth 1 --branch "$LIBNFS_REF" \
   https://github.com/sahlberg/libnfs.git /tmp/libnfs
