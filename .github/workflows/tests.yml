@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Integration tests (NFSv3 + NFSv4)
+    runs-on: ubuntu-24.04
+
+    env:
+      # The bindings track libnfs master.
+      LIBNFS_REF: master
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build swig python3-dev
+          python -m pip install setuptools
+
+      - name: Build and install libnfs
+        run: |
+          git clone --depth 1 --branch "$LIBNFS_REF" \
+            https://github.com/sahlberg/libnfs.git "$RUNNER_TEMP/libnfs"
+          cmake -S "$RUNNER_TEMP/libnfs" -B "$RUNNER_TEMP/libnfs/build" -G Ninja
+          ninja -C "$RUNNER_TEMP/libnfs/build"
+          sudo ninja -C "$RUNNER_TEMP/libnfs/build" install
+          sudo ldconfig
+
+      - name: Build the Python bindings
+        run: python setup.py build_ext --inplace
+
+      - name: Start the NFS server (NFS-Ganesha in Docker)
+        run: |
+          docker build -t libnfs-test-server tests/server
+          mkdir -p "$RUNNER_TEMP/export"
+          chmod 777 "$RUNNER_TEMP/export"
+          docker run -d --name nfs-server \
+            --cap-add DAC_READ_SEARCH \
+            -v "$RUNNER_TEMP/export:/export" \
+            libnfs-test-server
+          ip=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' nfs-server)
+          echo "NFS_TEST_SERVER=$ip" >> "$GITHUB_ENV"
+          echo "NFS_TEST_EXPORT=/export" >> "$GITHUB_ENV"
+
+      - name: Wait for the server
+        run: python tests/server/wait-ready.py "$NFS_TEST_SERVER" /export 120
+
+      - name: Run the tests
+        run: python -m unittest discover -v tests
+
+      - name: Server log
+        if: failure()
+        run: docker logs nfs-server
