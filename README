@@ -1,5 +1,5 @@
 This module is an NFS client for python.
-This project is hosted at https://github.com/sahlberg/libnfs-python
+This project is hosted at https://github.com/RidaShamasneh/libnfs-python
 
 This module depends on the libnfs library.
 You must first install libnfs before you can use this module.
@@ -9,6 +9,37 @@ Libnfs can be found at https://github.com/sahlberg/libnfs
 The two main classes in this module are NFS and NFSFH.
 NFS represents an NFS context that describes a mount point.
 NFSFH is the main class that implements a file-like object for NFS files.
+
+
+## Project history and maintenance
+
+libnfs-python was originally written by [Ronnie Sahlberg](https://github.com/sahlberg),
+the author of [libnfs](https://github.com/sahlberg/libnfs). The original repository,
+[sahlberg/libnfs-python](https://github.com/sahlberg/libnfs-python), has been archived,
+and its [final commit](https://github.com/sahlberg/libnfs-python/commit/04b91d4c2ba8e7e2be4f53393bdb3d914c7c77ad) points users here.
+
+**This repository is now the official home of libnfs-python** and is maintained by
+[Rida Shamasneh](https://github.com/RidaShamasneh). Many thanks to Ronnie for creating
+the bindings and for libnfs itself.
+
+### What's changing
+
+- Bindings are being updated to match the current libnfs `master` branch.
+- Python 3 only; Python 2 support has been dropped.
+- New PyPI releases are planned. The existing [`libnfs`](https://pypi.org/project/libnfs/)
+  package on PyPI (`1.0.post4`, 2016) is not built from this repository; the package
+  name for new releases will be announced here once confirmed. Until then, install
+  from source (see INSTALL).
+- More utilities and examples are planned.
+
+### Getting help
+
+- **Bugs and feature requests:** [GitHub Issues](https://github.com/RidaShamasneh/libnfs-python/issues)
+- **Questions and discussion:** [libnfs-python Google Group](https://groups.google.com/g/libnfs-python)
+- **Problems in the C library itself:** [libnfs issues](https://github.com/sahlberg/libnfs/issues)
+
+Issues and pull requests left open on the archived repository can't receive replies.
+If one still affects you, please open it again here.
 
 
 LICENSE
