@@ -132,6 +132,24 @@ own NFS mount internally. If you plan to access multiple/many files you
 should consider using context-full handles instead.
 
 
+RUNNING THE TESTS
+=================
+tests/test_nfs.py runs the bindings against a real NFS server: mount, open,
+read, write, stat, listdir, mkdir, rmdir and unlink, once over NFSv3 and once
+over NFSv4. Only the Python standard library is needed.
+
+Point it at any server you can write to:
+
+  python setup.py build_ext --inplace
+  export NFS_TEST_SERVER=192.0.2.10        # required, else tests are skipped
+  export NFS_TEST_EXPORT=/export           # default /export
+  export NFS_TEST_ARGS='uid=0&gid=0'       # optional extra URL arguments
+  python -m unittest discover -v tests
+
+CI (.github/workflows/tests.yml) installs the Linux kernel NFS server
+(nfs-kernel-server) on the runner and runs the same tests against it.
+
+
 MAILING LIST
 ============
 A libnfs-python mailing list is available at

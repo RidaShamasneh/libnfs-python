@@ -1,0 +1,79 @@
+name: tests-kernel-nfsd
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Integration tests (kernel nfsd, NFSv3 + NFSv4)
+    runs-on: ubuntu-24.04
+
+    env:
+      # The bindings track libnfs master.
+      LIBNFS_REF: master
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build swig python3-dev
+          python -m pip install setuptools
+
+      - name: Build and install libnfs
+        run: |
+          git clone --depth 1 --branch "$LIBNFS_REF" \
+            https://github.com/sahlberg/libnfs.git "$RUNNER_TEMP/libnfs"
+          cmake -S "$RUNNER_TEMP/libnfs" -B "$RUNNER_TEMP/libnfs/build" -G Ninja
+          ninja -C "$RUNNER_TEMP/libnfs/build"
+          sudo ninja -C "$RUNNER_TEMP/libnfs/build" install
+          sudo ldconfig
+
+      - name: Build the Python bindings
+        run: python setup.py build_ext --inplace
+
+      - name: Start the NFS server (kernel nfsd)
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            nfs-kernel-server nfs-common
+          # Short grace period and lease so NFSv4 accepts writes quickly;
+          # the defaults are 90 seconds.
+          sudo mkdir -p /etc/nfs.conf.d
+          printf '[nfsd]\ngrace-time=10\nlease-time=10\n' |
+            sudo tee /etc/nfs.conf.d/ci.conf
+          # "insecure": accept requests from unprivileged source ports. The
+          # default ("secure") would refuse libnfs, which only binds a
+          # reserved port when run as root.
+          sudo mkdir -p /srv/nfs-test
+          sudo chmod 777 /srv/nfs-test
+          echo '/srv/nfs-test *(rw,sync,insecure,no_subtree_check,no_root_squash)' |
+            sudo tee /etc/exports
+          sudo systemctl restart nfs-server
+          sudo exportfs -ra
+          sudo exportfs -v
+          echo "NFS_TEST_SERVER=127.0.0.1" >> "$GITHUB_ENV"
+          echo "NFS_TEST_EXPORT=/srv/nfs-test" >> "$GITHUB_ENV"
+
+      - name: Wait for the server
+        env:
+          # The script lives in tests/server/, so the in-place build in the
+          # repository root is not on sys.path by default.
+          PYTHONPATH: ${{ github.workspace }}
+        run: python tests/server/wait-ready.py "$NFS_TEST_SERVER" "$NFS_TEST_EXPORT" 120
+
+      - name: Run the tests
+        run: python -m unittest discover -v tests
+
+      - name: Server log
+        if: failure()
+        run: |
+          sudo exportfs -v || true
+          sudo journalctl -u nfs-server -u nfs-mountd --no-pager | tail -100 || true
