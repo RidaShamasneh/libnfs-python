@@ -67,12 +67,13 @@ jobs:
           # Skip the 32-bit container: the pip CMake needs libatomic there.
           CIBW_ARCHS_LINUX: native
 
+      - name: Collect the wheels
+        run: mv wheelhouse-old/*.whl wheelhouse/
+
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.arch }}
-          path: |
-            wheelhouse/*.whl
-            wheelhouse-old/*.whl
+          path: wheelhouse/*.whl
 
   publish-testpypi:
     name: Publish to TestPyPI
