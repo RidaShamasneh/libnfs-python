@@ -54,6 +54,10 @@ jobs:
           echo "NFS_TEST_EXPORT=/export" >> "$GITHUB_ENV"
 
       - name: Wait for the server
+        env:
+          # The script lives in tests/server/, so the in-place build in the
+          # repository root is not on sys.path by default.
+          PYTHONPATH: ${{ github.workspace }}
         run: python tests/server/wait-ready.py "$NFS_TEST_SERVER" /export 120
 
       - name: Run the tests
