@@ -2,6 +2,8 @@ name: release
 
 on:
   push:
+    branches:
+      - testpypi-release
     tags:
       - 'v*'
   workflow_dispatch:
