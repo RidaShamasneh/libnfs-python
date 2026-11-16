@@ -1,0 +1,21 @@
+[build-system]
+# swig is on PyPI as a prebuilt binary, so building from the sdist no
+# longer needs a system SWIG.
+requires = ["setuptools", "wheel", "swig"]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
+skip = "*-musllinux_*"
+build-verbosity = 1
+# Build the C libnfs library once per container; the wheel then bundles it.
+before-all = "bash .github/scripts/build-libnfs.sh"
+environment-pass = ["LIBNFS_REF"]
+test-command = "python -c \"import libnfs; print(libnfs.nfs_init_context)\""
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+environment = { CFLAGS = "-I/usr/local/include", LDFLAGS = "-L/usr/local/lib" }
+# auditwheel copies libnfs.so into the wheel; it must be able to find it.
+repair-wheel-command = "LD_LIBRARY_PATH=/usr/local/lib auditwheel repair -w {dest_dir} {wheel}"

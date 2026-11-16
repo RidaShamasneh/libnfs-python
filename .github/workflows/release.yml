@@ -34,9 +34,31 @@ jobs:
           name: dist
           path: dist/
 
+  wheels:
+    name: Build wheels (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the wheels
+        uses: pypa/cibuildwheel@v2.23.3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+
   publish-testpypi:
     name: Publish to TestPyPI
-    needs: build
+    needs: [build, wheels]
     runs-on: ubuntu-24.04
     environment:
       name: testpypi
@@ -46,8 +68,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: '{dist,wheels-*}'
           path: dist/
+          merge-multiple: true
 
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
