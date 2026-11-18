@@ -178,15 +178,22 @@ class NFSFH:
 
 class NFS:
     def __init__(self, url):
+        self._url = None
         self._nfs = nfs_init_context()
+        if self._nfs is None:
+            raise IOError('Failed to initialize an NFS context')
         self._url = nfs_parse_url_dir(self._nfs, url)
+        if self._url is None:
+            raise IOError(nfs_get_error(self._nfs))
         ret = nfs_mount(self._nfs, self._url.server, self._url.path)
         if ret != 0:
             raise IOError(nfs_get_error(self._nfs))
 
     def __del__(self):
-        nfs_destroy_url(self._url)
-        nfs_destroy_context(self._nfs)
+        if self._url is not None:
+            nfs_destroy_url(self._url)
+        if self._nfs is not None:
+            nfs_destroy_context(self._nfs)
 
     def open(self, path, mode='r', codec=None):
         return NFSFH(self._nfs, path, mode=mode, codec=codec)
