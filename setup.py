@@ -28,8 +28,7 @@ name = 'libnfs'
 # libnfs tag, 8.0.0.
 version = '8.0.0.post3'
 readme = 'README'
-download_url = "https://github.com/sahlberg/libnfs-python/libnfs-" + \
-                                                          version + ".tar.gz"
+download_url = "https://github.com/RidaShamasneh/libnfs-python/libnfs-" + version + ".tar.gz"
 with open(readme, "r") as f:
     long_description = f.read()
 
@@ -51,7 +50,9 @@ setup(name = name,
       platforms = ['any'],
       author = 'Ronnie Sahlberg',
       author_email = 'ronniesahlberg@gmail.com',
-      url = 'https://github.com/sahlberg/libnfs-python/',
+      maintainer = 'Rida Shamasneh',
+      maintainer_email = 'ridahani@gmail.com',
+      url = 'https://github.com/RidaShamasneh/libnfs-python/',
       download_url = download_url,
       packages = ['libnfs'],
       python_requires='>=3.6',
