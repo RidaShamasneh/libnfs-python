@@ -2,7 +2,7 @@
 # Build and install the C libnfs library into /usr/local (manylinux container).
 set -euxo pipefail
 
-LIBNFS_REF="${LIBNFS_REF:-libnfs-8.0.0}"
+LIBNFS_REF="${LIBNFS_REF:-master}"
 
 # CMake from PyPI: the CentOS 7 based manylinux2014 image has a version that
 # is too old for libnfs.
@@ -13,6 +13,7 @@ ln -sf "$(dirname "$PIP")/swig" /usr/local/bin/swig
 export PATH="$(dirname "$PIP"):$PATH"
 git clone --depth 1 --branch "$LIBNFS_REF" \
   https://github.com/sahlberg/libnfs.git /tmp/libnfs
+git -C /tmp/libnfs log -1 --format='Building libnfs %H %s'
 cmake -S /tmp/libnfs -B /tmp/libnfs/build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local \

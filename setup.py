@@ -23,10 +23,10 @@ class Build(build):
 cmdclass = { 'install': Install, 'build': Build }
 
 name = 'libnfs'
-# Matches the libnfs release bundled in the wheels (LIBNFS_REF in
-# .github/scripts/build-libnfs.sh). For a bindings-only fix on top of the same
-# libnfs, use a post-release such as 8.0.0.post1.
-version = '8.0.0.post1'
+# The wheels bundle libnfs master (LIBNFS_REF in
+# .github/scripts/build-libnfs.sh), so this is a post-release of the last
+# libnfs tag, 8.0.0.
+version = '8.0.0.post3'
 readme = 'README'
 download_url = "https://github.com/sahlberg/libnfs-python/libnfs-" + \
                                                           version + ".tar.gz"
