@@ -142,6 +142,20 @@ object. The drawback is that every context-free handle have to perform their
 own NFS mount internally. If you plan to access multiple/many files you
 should consider using context-full handles instead.
 
+## Command-line tools
+
+`utils/` has small tools that also serve as short, complete examples of the
+API. They take `nfs://server/export/path` URLs and accept
+`--nfs-version {3,4,4.1,4.2}` (libnfs defaults to NFSv3).
+
+```sh
+python utils/nfs-ls.py -l nfs://server/export/dir          # list a directory
+python utils/nfs-cat.py nfs://server/export/dir/file       # print files
+python utils/nfs-cp.py notes.txt nfs://server/export/dir/  # upload
+python utils/nfs-cp.py nfs://server/export/dir/file .      # download
+python utils/nfs-cp.py nfs://a/data/f nfs://b/backup/f     # server to server
+```
+
 ## Running the tests
 
 `tests/test_nfs.py` runs the bindings against a real NFS server: mount, open,
