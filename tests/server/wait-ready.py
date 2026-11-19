@@ -34,6 +34,18 @@ def ready(version):
             last_error[version] = 'rmdir returned %d (%s)' % (
                 ret, os.strerror(-ret))
             return False
+        if version == '4':
+            path = '/.ready-check-lock'
+            try:
+                with nfs.open(path, mode='wb') as f:
+                    f.write(b'x')
+                    f.lock(libnfs.F_WRLCK, 0, 1)
+                    f.unlock(0, 1)
+            finally:
+                try:
+                    nfs.unlink(path)
+                except Exception:
+                    pass
         return True
     except Exception as e:
         last_error[version] = '%s: %s' % (type(e).__name__, e)
