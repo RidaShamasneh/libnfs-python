@@ -362,6 +362,7 @@ def main():
         with nfs.open(path, mode='wb+') as f:
             f.write(b'x' * 100)
             f.lock(libnfs.F_WRLCK, 0, 50)      # LOCK  bytes 0-49
+            assert not f.lockt(0, 50)          # LOCKT: own lock never conflicts
             f.unlock(0, 50)                    # LOCKU
             f.lock(libnfs.F_RDLCK)             # shared lock, whole file
             f.unlock()
@@ -372,8 +373,7 @@ def main():
 
     print("\n%(PASS)d passed, %(FAIL)d failed, %(SKIP)d skipped" % results)
     print("""
-Not reachable through this binding (no wrapper exists): LOCKT-style
-lock testing, delegations, ACLs/named attributes, SECINFO, COPY/CLONE/SEEK(HOLE/DATA),
+Not reachable through this binding (no wrapper exists): delegations, ACLs/named attributes, SECINFO, COPY/CLONE/SEEK(HOLE/DATA),
 and the NFSv4.1+ session operations.  Those need the C API or new
 SWIG wrappers.""")
     return 1 if results['FAIL'] else 0

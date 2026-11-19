@@ -268,6 +268,21 @@ class NFSv4Tests(NFSTests, unittest.TestCase):
             b.lock(libnfs.F_WRLCK, 0, 50)       # free after LOCKU
             b.unlock(0, 50)
 
+    def test_lockt(self):
+        path, other = self._two_clients('lockt')
+        with self.nfs.open(path, mode='r+b') as a, \
+                other.open(path, mode='r+b') as b:
+            self.assertFalse(b.lockt(0, 50))
+            a.lock(libnfs.F_WRLCK, 0, 50)
+            self.assertTrue(b.lockt(0, 50))         # overlaps a's lock
+            self.assertTrue(b.lockt(40, 20))        # partial overlap
+            self.assertFalse(b.lockt(50, 50))       # disjoint
+            self.assertFalse(a.lockt(0, 50))        # own lock never conflicts
+            self.assertEqual(b.tell(), 0)           # offset is preserved
+            b.lock(libnfs.F_WRLCK, 50, 50)          # LOCKT left b usable
+            a.unlock(0, 50)
+            self.assertFalse(b.lockt(0, 50))
+
     def test_relock_after_unlock(self):
         path = self.path('relock')
         self.write_file(path, b'x' * 100)

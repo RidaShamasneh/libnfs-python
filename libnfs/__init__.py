@@ -190,19 +190,39 @@ class NFSFH:
         """Release a byte-range lock (LOCKU)."""
         if self._closed:
             raise ValueError('I/O operation on closed file')
+        # nfs_fcntl(F_UNLCK) does not record the stateid returned by LOCKU,
+        # so any later lock on this file fails.  nfs_lockf(F_ULOCK) does.
+        ret = self._lockf_at(NFS4_F_ULOCK, start, length, whence)
+        if ret < 0:
+            raise self._lock_error(ret)
+
+    def lockt(self, start=0, length=0, whence=os.SEEK_SET):
+        """Test a byte range for a conflicting lock (LOCKT).
+
+        Returns True if another client holds a lock that would conflict with
+        an exclusive lock on the range, False if the range is free.  Locks
+        taken through this same context never conflict with themselves.
+        """
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        ret = self._lockf_at(NFS4_F_TEST, start, length, whence)
+        if ret == 0:
+            return False
+        # libnfs maps NFS4ERR_DENIED to EIO; tell it apart from real errors
+        if 'NFS4ERR_DENIED' in (nfs_get_error(self._nfs) or ''):
+            return True
+        raise self._lock_error(ret)
+
+    def _lockf_at(self, op, start, length, whence):
+        """nfs_lockf() works at the current offset: seek there and back."""
         start = self._lock_start(start, whence)
         length = self._lock_length(length)
-        # nfs_fcntl(F_UNLCK) does not record the stateid returned by LOCKU,
-        # so any later lock on this file fails.  nfs_lockf(F_ULOCK) does,
-        # but it works at the current file offset, so seek there and back.
         pos = self.tell()
         nfs_lseek(self._nfs, self._nfsfh, start, os.SEEK_SET, new_uint64_t_ptr())
         try:
-            ret = nfs_lockf(self._nfs, self._nfsfh, NFS4_F_ULOCK, length)
+            return nfs_lockf(self._nfs, self._nfsfh, op, length)
         finally:
             nfs_lseek(self._nfs, self._nfsfh, pos, os.SEEK_SET, new_uint64_t_ptr())
-        if ret < 0:
-            raise self._lock_error(ret)
 
     def _lock_error(self, ret):
         # Add libnfs's own message: errno alone (usually EIO) hides which
