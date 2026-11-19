@@ -19,7 +19,28 @@
 
 %{
 #include <nfsc/libnfs.h>
+
+/* NFS_V3 and NFS_V4 are in the raw headers, NFS_V4_1 and NFS_V4_2 only in
+ * libnfs builds that have them.  The fallback values are the ones libnfs
+ * uses; a library without NFSv4.1/4.2 then rejects them at run time. */
+#ifndef NFS_V3
+#define NFS_V3 3
+#endif
+#ifndef NFS_V4
+#define NFS_V4 4
+#endif
+#ifndef NFS_V4_1
+#define NFS_V4_1 41
+#endif
+#ifndef NFS_V4_2
+#define NFS_V4_2 42
+#endif
 %}
+
+%constant int NFS_V3   = NFS_V3;
+%constant int NFS_V4   = NFS_V4;
+%constant int NFS_V4_1 = NFS_V4_1;
+%constant int NFS_V4_2 = NFS_V4_2;
 
 %include <stdint.i>
 %include <cpointer.i>
@@ -248,3 +269,5 @@ extern struct nfs_server_list *nfs_find_local_servers(void);
 extern void free_nfs_srvr_list(struct nfs_server_list *srv);
 extern void nfs_set_timeout(struct nfs_context *nfs, int milliseconds);
 extern int nfs_get_timeout(struct nfs_context *nfs);
+extern int nfs_set_version(struct nfs_context *nfs, int version);
+extern int nfs_get_version(struct nfs_context *nfs);

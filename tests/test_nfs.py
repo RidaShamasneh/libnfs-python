@@ -215,6 +215,12 @@ class NFSTests:
             self.nfs.mkdir(self.path('no/such/parent'))
         self.assertEqual(cm.exception.errno, errno.ENOENT)
 
+    # ---------------------------------------------------------- version
+
+    def test_get_version(self):
+        expected = {'3': libnfs.NFS_V3, '4': libnfs.NFS_V4}[self.version]
+        self.assertEqual(libnfs.nfs_get_version(self.nfs._nfs), expected)
+
     # ----------------------------------------------------------- unlink
 
     def test_unlink(self):
@@ -228,6 +234,37 @@ class NFSTests:
         with self.assertRaises(IOError) as cm:
             self.nfs.unlink(self.path('missing'))
         self.assertEqual(cm.exception.errno, errno.ENOENT)
+
+
+@unittest.skipUnless(SERVER, 'NFS_TEST_SERVER is not set')
+class NFSMinorVersionTests(unittest.TestCase):
+    """NFSv4.1 and NFSv4.2 (sessions) through the version=<n> URL argument."""
+
+    def check_minor_version(self, version, constant):
+        try:
+            nfs = libnfs.NFS(make_url(version))
+        except IOError as e:
+            self.skipTest('server does not offer NFSv%s: %s' % (version, e))
+        self.assertEqual(libnfs.nfs_get_version(nfs._nfs), constant)
+        path = '/unittest-' + uuid.uuid4().hex
+        with nfs.open(path, mode='wb') as f:
+            f.write(b'session')
+        self.addCleanup(nfs.unlink, path)
+        with nfs.open(path, mode='rb') as f:
+            self.assertEqual(f.read(), b'session')
+
+    def test_nfsv41(self):
+        self.check_minor_version('4.1', libnfs.NFS_V4_1)
+
+    def test_nfsv42(self):
+        self.check_minor_version('4.2', libnfs.NFS_V4_2)
+
+    def test_set_version_before_mount(self):
+        ctx = libnfs.nfs_init_context()
+        self.addCleanup(libnfs.nfs_destroy_context, ctx)
+        self.assertEqual(libnfs.nfs_set_version(ctx, libnfs.NFS_V4), 0)
+        self.assertEqual(libnfs.nfs_get_version(ctx), libnfs.NFS_V4)
+        self.assertLess(libnfs.nfs_set_version(ctx, 99), 0)
 
 
 class NFSv3Tests(NFSTests, unittest.TestCase):
