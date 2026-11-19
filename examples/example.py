@@ -356,13 +356,24 @@ def main():
             assert f.pread(0, 2) == b'ab'
     check('open file across idle period', lease)
 
+    # ---- LOCK / LOCKU: byte-range locks (NFSv4 only) ----
+    def locking():
+        path = T + '/lockfile'
+        with nfs.open(path, mode='wb+') as f:
+            f.write(b'x' * 100)
+            f.lock(libnfs.F_WRLCK, 0, 50)      # LOCK  bytes 0-49
+            f.unlock(0, 50)                    # LOCKU
+            f.lock(libnfs.F_RDLCK)             # shared lock, whole file
+            f.unlock()
+    check('lock/unlock (byte-range)', locking)
+
     # ---- cleanup ----
     check('cleanup (recursive remove)', lambda: rmtree(ctx, T))
 
     print("\n%(PASS)d passed, %(FAIL)d failed, %(SKIP)d skipped" % results)
     print("""
-Not reachable through this binding (no wrapper exists): LOCK/LOCKT/LOCKU,
-delegations, ACLs/named attributes, SECINFO, COPY/CLONE/SEEK(HOLE/DATA),
+Not reachable through this binding (no wrapper exists): LOCKT-style
+lock testing, delegations, ACLs/named attributes, SECINFO, COPY/CLONE/SEEK(HOLE/DATA),
 and the NFSv4.1+ session operations.  Those need the C API or new
 SWIG wrappers.""")
     return 1 if results['FAIL'] else 0

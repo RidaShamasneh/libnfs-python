@@ -192,6 +192,27 @@ extern int nfs_pwrite(struct nfs_context *nfs, struct nfsfh *nfsfh, const void *
 extern int nfs_write(struct nfs_context *nfs, struct nfsfh *nfsfh, const void *buf, uint64_t count);
 extern int nfs_lseek(struct nfs_context *nfs, struct nfsfh *nfsfh, int64_t offset, int whence, uint64_t *current_offset);
 extern int nfs_fsync(struct nfs_context *nfs, struct nfsfh *nfsfh);
+
+/* NFSv4 byte-range locking: LOCK / LOCKT / LOCKU */
+enum nfs4_lock_op {
+        NFS4_F_LOCK  = 0,
+        NFS4_F_TLOCK = 1,
+        NFS4_F_ULOCK = 2,
+        NFS4_F_TEST  = 3,
+};
+enum nfs4_fcntl_op {
+        NFS4_F_SETLK  = 0,
+        NFS4_F_SETLKW,
+};
+struct nfs4_flock {
+        int l_type;        /* F_RDLCK, F_WRLCK or F_UNLCK */
+        int l_whence;      /* SEEK_SET, SEEK_CUR or SEEK_END */
+        uint32_t l_pid;
+        uint64_t l_start;
+        uint64_t l_len;
+};
+extern int nfs_lockf(struct nfs_context *nfs, struct nfsfh *nfsfh, enum nfs4_lock_op op, uint64_t count);
+extern int nfs_fcntl(struct nfs_context *nfs, struct nfsfh *nfsfh, enum nfs4_fcntl_op cmd, struct nfs4_flock *arg);
 extern int nfs_truncate(struct nfs_context *nfs, const char *path, uint64_t length);
 extern int nfs_ftruncate(struct nfs_context *nfs, struct nfsfh *nfsfh, uint64_t length);
 extern int nfs_mkdir(struct nfs_context *nfs, const char *path);

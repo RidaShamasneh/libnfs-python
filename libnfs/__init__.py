@@ -18,6 +18,11 @@ import os
 import stat
 from .libnfs import *
 
+try:
+    from fcntl import F_RDLCK, F_WRLCK, F_UNLCK
+except ImportError:     # not a POSIX platform; use the Linux values
+    F_RDLCK, F_WRLCK, F_UNLCK = 0, 1, 2
+
 def _stat_to_dict(stat):
         return {'dev': stat.nfs_dev,
                 'ino': stat.nfs_ino,
@@ -159,6 +164,59 @@ class NFSFH:
             raise ValueError('I/O operation on closed file');
         nfs_fsync(self._nfs, self._nfsfh)
         self._need_flush = False
+
+    def lock(self, lock_type=F_WRLCK, start=0, length=0,
+             whence=os.SEEK_SET, blocking=False):
+        """Take an NFSv4 byte-range lock (LOCK).
+
+        lock_type is F_RDLCK (shared) or F_WRLCK (exclusive); length 0 means
+        'to end of file'.  Without blocking, an IOError is raised if another
+        client holds a conflicting lock.  libnfs does not translate
+        NFS4ERR_DENIED, so that conflict is reported as EIO.
+        """
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        fl = nfs4_flock()
+        fl.l_type = lock_type
+        fl.l_whence = os.SEEK_SET
+        fl.l_start = self._lock_start(start, whence)
+        fl.l_len = self._lock_length(length)
+        cmd = NFS4_F_SETLKW if blocking else NFS4_F_SETLK
+        ret = nfs_fcntl(self._nfs, self._nfsfh, cmd, fl)
+        if ret < 0:
+            raise IOError(-ret, os.strerror(-ret))
+
+    def unlock(self, start=0, length=0, whence=os.SEEK_SET):
+        """Release a byte-range lock (LOCKU)."""
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        start = self._lock_start(start, whence)
+        length = self._lock_length(length)
+        # nfs_fcntl(F_UNLCK) does not record the stateid returned by LOCKU,
+        # so any later lock on this file fails.  nfs_lockf(F_ULOCK) does,
+        # but it works at the current file offset, so seek there and back.
+        pos = self.tell()
+        nfs_lseek(self._nfs, self._nfsfh, start, os.SEEK_SET, new_uint64_t_ptr())
+        try:
+            ret = nfs_lockf(self._nfs, self._nfsfh, NFS4_F_ULOCK, length)
+        finally:
+            nfs_lseek(self._nfs, self._nfsfh, pos, os.SEEK_SET, new_uint64_t_ptr())
+        if ret < 0:
+            raise IOError(-ret, os.strerror(-ret))
+
+    def _lock_start(self, start, whence):
+        if whence == os.SEEK_CUR:
+            return self.tell() + start
+        if whence == os.SEEK_END:
+            _st = nfs_stat_64()
+            nfs_fstat64(self._nfs, self._nfsfh, _st)
+            return _st.nfs_size + start
+        return start
+
+    @staticmethod
+    def _lock_length(length):
+        # NFSv4 spells 'to end of file' as 2**64-1; it rejects 0.
+        return length if length else 0xFFFFFFFFFFFFFFFF
 
     def isatty(self):
         return False

@@ -237,6 +237,65 @@ class NFSv3Tests(NFSTests, unittest.TestCase):
 class NFSv4Tests(NFSTests, unittest.TestCase):
     version = '4'
 
+    # ------------------------------------------------------------ locking
+    # LOCK/LOCKT/LOCKU exist only in NFSv4.  A second NFS context is a
+    # second client (own client id and lock owner), so it conflicts with
+    # locks taken through the first one.
+
+    def _two_clients(self, name):
+        path = self.path(name)
+        self.write_file(path, b'x' * 100)
+        other = libnfs.NFS(make_url(self.version))
+        return path, other
+
+    def test_lock_conflict(self):
+        path, other = self._two_clients('conflict')
+        with self.nfs.open(path, mode='r+b') as a, \
+                other.open(path, mode='r+b') as b:
+            a.lock(libnfs.F_WRLCK, 0, 50)
+            b.lock(libnfs.F_WRLCK, 50, 50)      # disjoint range is fine
+            with self.assertRaises(IOError) as cm:
+                b.lock(libnfs.F_WRLCK, 0, 50)   # overlaps a's lock
+            # libnfs reports NFS4ERR_DENIED as EIO
+            self.assertEqual(cm.exception.errno, errno.EIO)
+
+    def test_unlock_releases_lock(self):
+        path, other = self._two_clients('unlock')
+        with self.nfs.open(path, mode='r+b') as a, \
+                other.open(path, mode='r+b') as b:
+            a.lock(libnfs.F_WRLCK, 0, 50)
+            a.unlock(0, 50)
+            b.lock(libnfs.F_WRLCK, 0, 50)       # free after LOCKU
+            b.unlock(0, 50)
+
+    def test_relock_after_unlock(self):
+        path = self.path('relock')
+        self.write_file(path, b'x' * 100)
+        with self.nfs.open(path, mode='r+b') as f:
+            for _ in range(3):
+                f.lock(libnfs.F_WRLCK, 10, 20)
+                f.unlock(10, 20)
+            f.lock()                            # whole file (length 0)
+            f.unlock()
+            self.assertEqual(f.tell(), 0)       # unlock keeps the offset
+
+    def test_shared_locks(self):
+        path, other = self._two_clients('shared')
+        with self.nfs.open(path, mode='r+b') as a, \
+                other.open(path, mode='r+b') as b:
+            a.lock(libnfs.F_RDLCK, 0, 0)
+            b.lock(libnfs.F_RDLCK, 0, 0)        # readers share
+            with self.assertRaises(IOError):
+                b.lock(libnfs.F_WRLCK, 0, 0)    # upgrade blocked by a
+
+    def test_lockf(self):
+        path = self.path('lockf')
+        self.write_file(path, b'x' * 10)
+        with self.nfs.open(path, mode='r+b') as f:
+            ctx, fh = self.nfs._nfs, f._nfsfh
+            self.assertEqual(libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_TLOCK, 10), 0)
+            self.assertEqual(libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_ULOCK, 10), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
