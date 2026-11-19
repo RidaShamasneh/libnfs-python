@@ -146,7 +146,9 @@ should consider using context-full handles instead.
 
 `utils/` has small tools that also serve as short, complete examples of the
 API. They take `nfs://server/export/path` URLs and accept
-`--nfs-version {3,4,4.1,4.2}` (libnfs defaults to NFSv3).
+`--nfs-version {3,4,4.1,4.2}` (libnfs defaults to NFSv3). Run them from a
+checkout built with `python setup.py build_ext --inplace`; they then use that
+build instead of any older `libnfs` that is installed.
 
 ```sh
 python utils/nfs-ls.py -l nfs://server/export/dir          # list a directory

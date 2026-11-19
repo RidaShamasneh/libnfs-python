@@ -1,6 +1,16 @@
 """Helpers shared by the nfs-* command-line tools."""
+import glob
+import os
 import sys
 from urllib.parse import urlsplit, urlunsplit, unquote
+
+# Run from a checkout that has been built in place (setup.py build_ext
+# --inplace): use that binding, not an older libnfs that happens to be
+# installed.  Releases before this project's return None from write(), among
+# other differences.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if glob.glob(os.path.join(_ROOT, 'libnfs', '_libnfs*')):
+    sys.path.insert(0, _ROOT)
 
 import libnfs
 
@@ -31,6 +41,29 @@ def split_file_url(url):
     mount = urlunsplit((parts.scheme, parts.netloc, directory or '/',
                         parts.query, ''))
     return mount, unquote(name)
+
+
+def copy_stream(fin, fout, chunk=1024 * 1024):
+    """Copy fin to fout; return the number of bytes copied.
+
+    write() is expected to return how many bytes it took, but some bindings
+    return None (everything was written), so never loop on that value
+    without checking that it made progress.
+    """
+    total = 0
+    while True:
+        data = fin.read(chunk)
+        if not data:
+            return total
+        view = memoryview(data)
+        while view:
+            n = fout.write(view)
+            if n is None:           # no count reported: all of it was written
+                break
+            if n <= 0:
+                raise IOError('write made no progress')
+            view = view[n:]
+        total += len(data)
 
 
 def mount(url):

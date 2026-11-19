@@ -17,7 +17,6 @@ import sys
 
 import _common
 
-CHUNK = 1024 * 1024
 
 
 class Local:
@@ -98,16 +97,8 @@ def main():
     if dst.is_dir():
         dst = dst.child(src.name())
 
-    total = 0
     with src.open('rb') as fin, dst.open('wb') as fout:
-        while True:
-            data = fin.read(CHUNK)
-            if not data:
-                break
-            view = memoryview(data)
-            while view:                     # a write may be short
-                view = view[fout.write(view):]
-            total += len(data)
+        total = _common.copy_stream(fin, fout)
     print('%d bytes copied' % total, file=sys.stderr)
 
 

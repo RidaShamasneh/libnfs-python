@@ -13,6 +13,10 @@ import uuid
 
 import libnfs
 
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'utils'))
+import _common  # noqa: E402
+
 SERVER = os.environ.get('NFS_TEST_SERVER')
 EXPORT = os.environ.get('NFS_TEST_EXPORT', '/export')
 
@@ -26,6 +30,54 @@ def run(tool, *args):
         [ROOT] + ([env['PYTHONPATH']] if env.get('PYTHONPATH') else []))
     return subprocess.run([sys.executable, os.path.join(UTILS, tool), *args],
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+
+
+class CopyStreamTests(unittest.TestCase):
+    """copy_stream() must finish whatever write() returns (no server needed)."""
+
+    class Source:
+        def __init__(self, data):
+            self.data, self.pos = data, 0
+
+        def read(self, n):
+            chunk = self.data[self.pos:self.pos + n]
+            self.pos += len(chunk)
+            return chunk
+
+    class Sink:
+        def __init__(self, report):
+            self.report, self.received = report, b''
+            self.calls = 0
+
+        def write(self, view):
+            self.calls += 1
+            if self.calls > 1000:
+                raise AssertionError('write loop does not terminate')
+            taken = self.report(len(view))
+            self.received += bytes(view[:len(view) if taken is None else taken])
+            return taken
+
+    def copy(self, report, data=b'hello\n' * 5, chunk=8):
+        sink = self.Sink(report)
+        total = _common.copy_stream(self.Source(data), sink, chunk)
+        return total, sink
+
+    def test_write_returns_count(self):
+        total, sink = self.copy(lambda n: n)
+        self.assertEqual((total, sink.received), (30, b'hello\n' * 5))
+
+    def test_write_returns_none(self):
+        # older bindings return None; this used to rewrite the data forever
+        total, sink = self.copy(lambda n: None)
+        self.assertEqual((total, sink.received), (30, b'hello\n' * 5))
+
+    def test_short_writes_are_continued(self):
+        total, sink = self.copy(lambda n: min(n, 3))
+        self.assertEqual((total, sink.received), (30, b'hello\n' * 5))
+
+    def test_no_progress_is_an_error(self):
+        with self.assertRaises(IOError):
+            self.copy(lambda n: 0)
 
 
 @unittest.skipUnless(SERVER, 'NFS_TEST_SERVER is not set')
