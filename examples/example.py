@@ -374,8 +374,11 @@ def main():
     print("\n%(PASS)d passed, %(FAIL)d failed, %(SKIP)d skipped" % results)
     print("""
 Not reachable through this binding (no wrapper exists): delegations,
-ACLs/named attributes, SECINFO and COPY/CLONE/SEEK(HOLE/DATA).  Those need
+ACLs/named attributes, SECINFO, COPY/CLONE and fallocate().  Those need
 the C API or new SWIG wrappers.
+
+SEEK_DATA and SEEK_HOLE (NFSv4.2 only) do work: pass them as `whence` to
+nfs_lseek() on a mount made with version=4.2.
 
 NFSv4.1+ sessions (EXCHANGE_ID, CREATE_SESSION, SEQUENCE, ...) are set up by
 libnfs itself; mount with version=4.1 or version=4.2 to use them.""")

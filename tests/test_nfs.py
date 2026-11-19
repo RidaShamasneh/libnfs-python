@@ -259,6 +259,64 @@ class NFSMinorVersionTests(unittest.TestCase):
     def test_nfsv42(self):
         self.check_minor_version('4.2', libnfs.NFS_V4_2)
 
+    # SEEK_DATA / SEEK_HOLE are NFSv4.2 operations, reached through the
+    # ordinary nfs_lseek() wrapper by passing them as `whence`.
+
+    def lseek(self, nfs, fh, offset, whence):
+        pos = libnfs.new_uint64_t_ptr()
+        ret = libnfs.nfs_lseek(nfs._nfs, fh, offset, whence, pos)
+        return ret if ret < 0 else libnfs.uint64_t_ptr_value(pos)
+
+    def make_file(self, version, size=10):
+        nfs = libnfs.NFS(make_url(version))
+        path = '/unittest-' + uuid.uuid4().hex
+        with nfs.open(path, mode='wb') as f:
+            f.write(b'x' * size)
+        self.addCleanup(nfs.unlink, path)
+        return nfs, path
+
+    def test_seek_data_and_hole_nfsv42(self):
+        try:
+            nfs, path = self.make_file('4.2')
+        except IOError as e:
+            self.skipTest('server does not offer NFSv4.2: %s' % e)
+        with nfs.open(path, mode='rb') as f:
+            fh = f._nfsfh
+            self.assertEqual(self.lseek(nfs, fh, 0, os.SEEK_DATA), 0)
+            # a file has an implicit hole at its end
+            self.assertEqual(self.lseek(nfs, fh, 0, os.SEEK_HOLE), 10)
+            self.assertEqual(self.lseek(nfs, fh, 3, os.SEEK_HOLE), 10)
+            # nothing but the end of file lies at or beyond offset 10
+            self.assertEqual(self.lseek(nfs, fh, 10, os.SEEK_DATA),
+                             -errno.ENXIO)
+
+    def test_seek_data_and_hole_sparse_file(self):
+        try:
+            nfs, path = self.make_file('4.2')
+        except IOError as e:
+            self.skipTest('server does not offer NFSv4.2: %s' % e)
+        size = 1024 * 1024
+        with nfs.open(path, mode='r+b') as f:
+            self.assertEqual(libnfs.nfs_ftruncate(nfs._nfs, f._nfsfh, size), 0)
+            fh = f._nfsfh
+            # the data is at the start; where the hole begins depends on the
+            # server's file system, but it lies within the file
+            self.assertEqual(self.lseek(nfs, fh, 0, os.SEEK_DATA), 0)
+            hole = self.lseek(nfs, fh, 0, os.SEEK_HOLE)
+            self.assertTrue(0 < hole <= size, hole)
+
+    def test_seek_data_and_hole_need_nfsv42(self):
+        for version in ('3', '4', '4.1'):
+            with self.subTest(version=version):
+                try:
+                    nfs, path = self.make_file(version)
+                except IOError as e:
+                    self.skipTest('no NFSv%s: %s' % (version, e))
+                with nfs.open(path, mode='rb') as f:
+                    for whence in (os.SEEK_DATA, os.SEEK_HOLE):
+                        self.assertLess(
+                            self.lseek(nfs, f._nfsfh, 0, whence), 0)
+
     def test_set_version_before_mount(self):
         ctx = libnfs.nfs_init_context()
         self.addCleanup(libnfs.nfs_destroy_context, ctx)
