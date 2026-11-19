@@ -27,7 +27,7 @@ name = 'libnfs'
 # .github/scripts/build-libnfs.sh), so this is a post-release of the last
 # libnfs tag, 8.0.0.
 version = '8.0.0.post3'
-readme = 'README'
+readme = 'README.md'
 with open(readme, "r") as f:
     long_description = f.read()
 
@@ -44,7 +44,7 @@ setup(name = name,
       version = version,
       description = 'NFS client for Python.',
       long_description = long_description,
-      long_description_content_type = 'text/plain',
+      long_description_content_type = 'text/markdown',
       license = 'LGPLv2.1',
       platforms = ['any'],
       author = 'Ronnie Sahlberg',

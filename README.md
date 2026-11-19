@@ -1,15 +1,16 @@
-This module is an NFS client for python.
+# libnfs-python
+
+This module is an NFS client for Python.
+
 This project is hosted at https://github.com/RidaShamasneh/libnfs-python
 
 This module depends on the libnfs library.
 You must first install libnfs before you can use this module.
 Libnfs can be found at https://github.com/sahlberg/libnfs
 
-
 The two main classes in this module are NFS and NFSFH.
 NFS represents an NFS context that describes a mount point.
 NFSFH is the main class that implements a file-like object for NFS files.
-
 
 ## Project history and maintenance
 
@@ -41,15 +42,13 @@ the bindings and for libnfs itself.
 Issues and pull requests left open on the archived repository can't receive replies.
 If one still affects you, please open it again here.
 
+## License
 
-LICENSE
-=======
 This module is distributed under LGPL version 2.1.
 Please see COPYING for the full text of this license.
 
+## Context-full access
 
-Context-full access
-===================
 In the context-full mode you will first need to mount an NFS share and create
 an NFS context before you can access any files. This NFS context is then used
 for all future access to files in that mount point.
@@ -61,7 +60,8 @@ and can reuse the mount for any future files you want to access.
 In this mode absolute paths are relative to the mount point for the NFS object.
 
 Example:
---------
+
+```python
 import libnfs
 
 nfs = libnfs.NFS('nfs://127.0.0.1/data/tmp/')
@@ -73,20 +73,21 @@ file.close()
 
 with nfs.open(path, mode='r') as file:
     print(file.read())
+```
 
+## Context-free access
 
-Context-free access
-===================
 This module also provides a mode where you can directly open and access
 a file-like object without first having to instantiate a NFS mount.
 In this case the file-like object will internally create an NFS mount
 for the duration of the lifespan of the file-like object.
 
-In this mode you invoke the libnfs.open() function with an NFS url
-that points to a file :
+In this mode you invoke the `libnfs.open()` function with an NFS url
+that points to a file:
 
 Example:
---------
+
+```python
 import libnfs
 
 url = 'nfs://127.0.0.1/data/tmp/foo-test'
@@ -96,6 +97,7 @@ file.close()
 
 with libnfs.open(url, mode='r') as file:
     print(file.read())
+```
 
 In the example above we create two instances of a file-like object. First
 we create and write to the file and second time we read the file back and
@@ -104,63 +106,63 @@ The reason is that when we use context-free file-like objects we have to
 create an NFS mount internally for each object and this is expensive.
 
 Basically, when creating an NFS mount, the NFS protocol requires that we
-perform the following operations/roundtrips :
+perform the following operations/roundtrips.
 
-Creating an NFS context:
-------------------------
-1, Establish TCP connection to portmapper (TCP port 111) on the server.
-2, Send a Portmapper NULL command to verify we are connected to a genuine
+### Creating an NFS context
+
+1. Establish TCP connection to portmapper (TCP port 111) on the server.
+2. Send a Portmapper NULL command to verify we are connected to a genuine
    Portmapper and that it is alive.
-3, Send a Portmapper GetPort command to fetch which port the MOUNT daemon
+3. Send a Portmapper GetPort command to fetch which port the MOUNT daemon
    is running on.
    Close the TCP connection.
-4, Establish a TCP connection to the MOUNT daemon
-5, Send a MOUNT NULL command to verify the MOUNT daemon is alive.
-6, Send a MOUNT MNT command to fetch the NFS file handle for the mount point.
+4. Establish a TCP connection to the MOUNT daemon
+5. Send a MOUNT NULL command to verify the MOUNT daemon is alive.
+6. Send a MOUNT MNT command to fetch the NFS file handle for the mount point.
    Close the TCP connection.
-7, Establish TCP connection to portmapper (TCP port 111) on the server.
-8, Send a Portmapper NULL command to verify we are connected to a genuine
+7. Establish TCP connection to portmapper (TCP port 111) on the server.
+8. Send a Portmapper NULL command to verify we are connected to a genuine
    Portmapper and that it is alive.
-9, Send a Portmapper GetPort command to fetch which port the DAEMON daemon
+9. Send a Portmapper GetPort command to fetch which port the DAEMON daemon
    is running on.
    Close the TCP connection.
-10, Establish a TCP connection to the NFS daemon
-11, Send a NFS NULL command to verify the NFS daemon is alive.
-12, Send a NFS FSINFO command to fetch some basic information about the
+10. Establish a TCP connection to the NFS daemon
+11. Send a NFS NULL command to verify the NFS daemon is alive.
+12. Send a NFS FSINFO command to fetch some basic information about the
     filesystem we just mounted.
-13, Send a NFS GETATTR command to fetch some information about the root
+13. Send a NFS GETATTR command to fetch some information about the root
     directory for this mount.
 
 When using context-free handles we have to perform these steps every time
 a new file-like object is created making it very expensive.
 
 The benefit with context-free handles is that they are very convenient to use.
-Just pass an NFS url to the libnfs.open() function and you have a file-like
+Just pass an NFS url to the `libnfs.open()` function and you have a file-like
 object. The drawback is that every context-free handle have to perform their
 own NFS mount internally. If you plan to access multiple/many files you
 should consider using context-full handles instead.
 
+## Running the tests
 
-RUNNING THE TESTS
-=================
-tests/test_nfs.py runs the bindings against a real NFS server: mount, open,
+`tests/test_nfs.py` runs the bindings against a real NFS server: mount, open,
 read, write, stat, listdir, mkdir, rmdir and unlink, once over NFSv3 and once
 over NFSv4. Only the Python standard library is needed.
 
 Point it at any server you can write to:
 
-  python setup.py build_ext --inplace
-  export NFS_TEST_SERVER=192.0.2.10        # required, else tests are skipped
-  export NFS_TEST_EXPORT=/export           # default /export
-  export NFS_TEST_ARGS='uid=0&gid=0'       # optional extra URL arguments
-  python -m unittest discover -v tests
+```sh
+python setup.py build_ext --inplace
+export NFS_TEST_SERVER=192.0.2.10        # required, else tests are skipped
+export NFS_TEST_EXPORT=/export           # default /export
+export NFS_TEST_ARGS='uid=0&gid=0'       # optional extra URL arguments
+python -m unittest discover -v tests
+```
 
-CI (.github/workflows/tests.yml) installs the Linux kernel NFS server
-(nfs-kernel-server) on the runner and runs the same tests against it.
+CI (`.github/workflows/tests.yml`) installs the Linux kernel NFS server
+(`nfs-kernel-server`) on the runner and runs the same tests against it.
 
+## Mailing list
 
-MAILING LIST
-============
 A libnfs-python mailing list is available at
-http://groups.google.com/group/libnfs-python
+<http://groups.google.com/group/libnfs-python>.
 Announcements of new versions of libnfs-python will be posted to this list.
