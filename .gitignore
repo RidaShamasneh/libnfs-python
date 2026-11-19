@@ -17,6 +17,3 @@ libnfs/*.so
 # Virtual environments
 venv/
 .venv/
-
-# Stray compiler output
-a.out
