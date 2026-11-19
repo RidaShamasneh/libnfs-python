@@ -373,9 +373,12 @@ def main():
 
     print("\n%(PASS)d passed, %(FAIL)d failed, %(SKIP)d skipped" % results)
     print("""
-Not reachable through this binding (no wrapper exists): delegations, ACLs/named attributes, SECINFO, COPY/CLONE/SEEK(HOLE/DATA),
-and the NFSv4.1+ session operations.  Those need the C API or new
-SWIG wrappers.""")
+Not reachable through this binding (no wrapper exists): delegations,
+ACLs/named attributes, SECINFO and COPY/CLONE/SEEK(HOLE/DATA).  Those need
+the C API or new SWIG wrappers.
+
+NFSv4.1+ sessions (EXCHANGE_ID, CREATE_SESSION, SEQUENCE, ...) are set up by
+libnfs itself; mount with version=4.1 or version=4.2 to use them.""")
     return 1 if results['FAIL'] else 0
 
 
