@@ -88,6 +88,23 @@ class CommandLineToolTests(unittest.TestCase):
         with open(os.path.join(self.local.name, 'two.txt'), 'rb') as f:
             self.assertEqual(f.read(), b'copy me')
 
+    def test_cp_into_remote_directory(self):
+        src = self.write_local('named.txt', b'into a dir')
+        for dest in (self.url + '/', self.url):      # with and without slash
+            with self.subTest(dest=dest):
+                r = self.tool('nfs-cp.py', src, dest)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(
+                    self.tool('nfs-cat.py', self.url + '/named.txt').stdout,
+                    b'into a dir')
+                self.nfs.unlink('/%s/named.txt' % self.dirname)
+
+    def test_cp_into_missing_directory_fails(self):
+        src = self.write_local('x.txt', b'x')
+        r = self.tool('nfs-cp.py', src, self.url + '/no-such-dir/x.txt')
+        self.assertEqual(r.returncode, 1)
+        self.assertNotIn(b'Traceback', r.stderr)
+
     def test_cat_several_files(self):
         for name, data in (('a', b'first\n'), ('b', b'second\n')):
             self.tool('nfs-cp.py', self.write_local(name, data),

@@ -39,19 +39,34 @@ class Local:
 
 
 class Remote:
+    """An NFS file.  Mounting is the expensive part (about a dozen round
+    trips), so mount the parent directory once and use that one mount both
+    to look at the file and to open it."""
     def __init__(self, url, version):
         self.url, self.version = url, version
-        self._nfs = None
+        self._parent = None         # (mount, file name), made on first use
 
     def _mount(self, mount_url):
         return _common.mount(_common.with_version(mount_url, self.version))
 
+    def _in_parent(self):
+        if self._parent is None:
+            mount_url, name = _common.split_file_url(self.url)
+            self._parent = (self._mount(mount_url), name)
+        return self._parent
+
     def is_dir(self):
-        # A directory URL mounts as is; a file URL fails to mount as a dir.
+        if self.url.endswith('/'):
+            return True             # nothing to look at, and no mount needed
         try:
-            return self._mount(self.url.rstrip('/')).isdir('/')
-        except IOError:
-            return False
+            nfs, name = self._in_parent()
+        except IOError as parent_error:
+            # e.g. the export root itself, which has no parent to mount
+            try:
+                return self._mount(self.url).isdir('/')
+            except IOError:
+                raise parent_error      # the parent is what is really missing
+        return nfs.isdir('/' + name)
 
     def child(self, name):
         return Remote(self.url.rstrip('/') + '/' + name, self.version)
@@ -60,9 +75,8 @@ class Remote:
         return _common.split_file_url(self.url)[1]
 
     def open(self, mode):
-        mount_url, name = _common.split_file_url(self.url)
-        self._nfs = self._mount(mount_url)       # keep the mount alive
-        return self._nfs.open('/' + name, mode=mode)
+        nfs, name = self._in_parent()
+        return nfs.open('/' + name, mode=mode)
 
 
 def endpoint(arg, version):
