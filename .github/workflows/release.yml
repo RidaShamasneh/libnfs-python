@@ -46,24 +46,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build the wheels (Python 3.8 and later)
-        uses: pypa/cibuildwheel@v3.2.1
+      - name: Build the wheels (Python 3.9 and later)
+        uses: pypa/cibuildwheel@v4.3.5
         env:
-          CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
-          # 3.15 has no stable release yet; build it from the prerelease images.
-          CIBW_ENABLE: cpython-prerelease
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
 
-      # Current cibuildwheel releases cannot build for Python 3.6 and 3.7.
+      # Current cibuildwheel releases cannot build for Python 3.6, 3.7 and 3.8.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Build the wheels (Python 3.6 and 3.7)
+      - name: Build the wheels (Python 3.6 to 3.8)
         uses: pypa/cibuildwheel@v2.11.4
         with:
           output-dir: wheelhouse-old
         env:
-          CIBW_BUILD: "cp36-* cp37-*"
+          CIBW_BUILD: "cp36-* cp37-* cp38-*"
           # Skip the 32-bit container: the pip CMake needs libatomic there.
           CIBW_ARCHS_LINUX: native
 
