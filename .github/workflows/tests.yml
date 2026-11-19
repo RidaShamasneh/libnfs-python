@@ -14,11 +14,16 @@ concurrency:
 jobs:
   integration:
     name: Integration tests (Python ${{ matrix.python-version }}, kernel nfsd, NFSv3 + NFSv4)
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        os: [ubuntu-24.04]
+        include:
+          # setup-python has no 3.7 build for ubuntu-24.04.
+          - python-version: '3.7'
+            os: ubuntu-22.04
 
     env:
       # The bindings track libnfs master.
