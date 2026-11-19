@@ -25,11 +25,11 @@ UTILS = os.path.join(ROOT, 'utils')
 
 
 def run(tool, *args):
-    env = dict(os.environ)
-    env['PYTHONPATH'] = os.pathsep.join(
-        [ROOT] + ([env['PYTHONPATH']] if env.get('PYTHONPATH') else []))
+    # No PYTHONPATH tweaks: the tools use the checkout's in-place build when
+    # there is one (see utils/_common.py) and otherwise the installed libnfs,
+    # which is what lets this suite test an installed package too.
     return subprocess.run([sys.executable, os.path.join(UTILS, tool), *args],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 class CopyStreamTests(unittest.TestCase):
