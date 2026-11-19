@@ -293,8 +293,10 @@ class NFSv4Tests(NFSTests, unittest.TestCase):
         self.write_file(path, b'x' * 10)
         with self.nfs.open(path, mode='r+b') as f:
             ctx, fh = self.nfs._nfs, f._nfsfh
-            self.assertEqual(libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_TLOCK, 10), 0)
-            self.assertEqual(libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_ULOCK, 10), 0)
+            ret = libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_TLOCK, 10)
+            self.assertEqual(ret, 0, libnfs.nfs_get_error(ctx))
+            ret = libnfs.nfs_lockf(ctx, fh, libnfs.NFS4_F_ULOCK, 10)
+            self.assertEqual(ret, 0, libnfs.nfs_get_error(ctx))
 
 
 if __name__ == '__main__':

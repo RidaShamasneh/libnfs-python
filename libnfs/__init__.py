@@ -184,7 +184,7 @@ class NFSFH:
         cmd = NFS4_F_SETLKW if blocking else NFS4_F_SETLK
         ret = nfs_fcntl(self._nfs, self._nfsfh, cmd, fl)
         if ret < 0:
-            raise IOError(-ret, os.strerror(-ret))
+            raise self._lock_error(ret)
 
     def unlock(self, start=0, length=0, whence=os.SEEK_SET):
         """Release a byte-range lock (LOCKU)."""
@@ -202,7 +202,13 @@ class NFSFH:
         finally:
             nfs_lseek(self._nfs, self._nfsfh, pos, os.SEEK_SET, new_uint64_t_ptr())
         if ret < 0:
-            raise IOError(-ret, os.strerror(-ret))
+            raise self._lock_error(ret)
+
+    def _lock_error(self, ret):
+        # Add libnfs's own message: errno alone (usually EIO) hides which
+        # NFS4ERR_* the server returned.
+        return IOError(-ret, '%s (%s)' % (os.strerror(-ret),
+                                          nfs_get_error(self._nfs)))
 
     def _lock_start(self, start, whence):
         if whence == os.SEEK_CUR:
