@@ -7,7 +7,7 @@ requires = ["setuptools", "wheel", "swig; python_version >= '3.7'"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-# The release workflow builds cp36-cp37 with cibuildwheel 2.11 (3.6-3.8) and the rest with
+# The release workflow builds cp36-cp37 with cibuildwheel 2.11, cp38 with 3.2.1 and the rest with
 # a current cibuildwheel, because current releases no longer support 3.6/3.7.
 build = "cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
 skip = "*-musllinux_*"

@@ -50,18 +50,27 @@ jobs:
         uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
+          # Build the 32-bit x86 wheels too (cibuildwheel 4 does not by default).
+          CIBW_ARCHS_LINUX: "x86_64 i686"
 
-      # Current cibuildwheel releases cannot build for Python 3.6, 3.7 and 3.8.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Build the wheels (Python 3.6 to 3.8)
+      # cibuildwheel 4 dropped Python 3.8; 3.2.1 still builds it, including i686.
+      - name: Build the wheels (Python 3.8)
+        uses: pypa/cibuildwheel@v3.2.1
+        env:
+          CIBW_BUILD: "cp38-*"
+          CIBW_ARCHS_LINUX: "x86_64 i686"
+
+      # Current cibuildwheel releases cannot build for Python 3.6 and 3.7.
+      - name: Build the wheels (Python 3.6 and 3.7)
         uses: pypa/cibuildwheel@v2.11.4
         with:
           output-dir: wheelhouse-old
         env:
-          CIBW_BUILD: "cp36-* cp37-* cp38-*"
+          CIBW_BUILD: "cp36-* cp37-*"
           # Skip the 32-bit container: the pip CMake needs libatomic there.
           CIBW_ARCHS_LINUX: native
 
