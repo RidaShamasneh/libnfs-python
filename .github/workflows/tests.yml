@@ -12,6 +12,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  integration-complete:
+    name: Integration tests
+    needs: integration
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify integration test matrix results
+        run: test '${{ needs.integration.result }}' = success
+
   integration:
     name: Integration tests (Python ${{ matrix.python-version }}, kernel nfsd, NFSv3 + NFSv4)
     runs-on: ${{ matrix.os }}
