@@ -25,8 +25,8 @@ cmdclass = { 'install': Install, 'build': Build }
 name = 'libnfs'
 # The wheels bundle libnfs master (LIBNFS_REF in
 # .github/scripts/build-libnfs.sh), so this is a post-release of the last
-# libnfs tag, 8.0.0.
-version = '8.0.0.post3'
+# libnfs tag, 8.1.0.
+version = '8.1.0.post1'
 readme = 'README.md'
 with open(readme, "r") as f:
     long_description = f.read()
