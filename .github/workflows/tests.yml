@@ -23,7 +23,8 @@ jobs:
         run: test '${{ needs.integration.result }}' = success
 
   integration:
-    name: Integration tests (Python ${{ matrix.python-version }}, ${{ matrix.os }}, kernel nfsd, NFSv3 + NFSv4)
+    # The x86_64 names must stay as they are: the master ruleset requires them by exact name.
+    name: Integration tests (Python ${{ matrix.python-version }}${{ endsWith(matrix.os, '-arm') && ', aarch64' || '' }}, kernel nfsd, NFSv3 + NFSv4)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
