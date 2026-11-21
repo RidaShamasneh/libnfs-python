@@ -14,7 +14,7 @@ skip = "*-musllinux_*"
 build-verbosity = 1
 # Build the C libnfs library once per container; the wheel then bundles it.
 before-all = "bash .github/scripts/build-libnfs.sh"
-environment-pass = ["LIBNFS_REF"]
+environment-pass = ["LIBNFS_REF", "LIBNFS_REPO"]
 test-command = "python -c \"import libnfs; print(libnfs.nfs_init_context)\""
 
 [tool.cibuildwheel.linux]

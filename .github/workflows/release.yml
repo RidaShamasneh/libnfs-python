@@ -35,6 +35,10 @@ jobs:
   wheels:
     name: Build wheels (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Temporary: libnfs with RDMA loaded through dlopen(), not yet upstream.
+      LIBNFS_REPO: https://github.com/RidaShamasneh/libnfs.git
+      LIBNFS_REF: rdma-dlopen
     strategy:
       fail-fast: false
       matrix:
