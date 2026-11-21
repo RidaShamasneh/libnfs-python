@@ -8,13 +8,15 @@ LIBNFS_REPO="${LIBNFS_REPO:-https://github.com/sahlberg/libnfs.git}"
 # RDMA transport (proto=rdma): only the libibverbs/librdmacm headers are needed
 # to build. libnfs loads the libraries with dlopen() at run time, so the wheel
 # imports on hosts without rdma-core and uses the host's rdma-core for RDMA.
-# The manylinux2014 image (CentOS 7, Python 3.6/3.7) has no working package
-# repositories any more, so those wheels are built without RDMA.
 if command -v dnf >/dev/null; then
   dnf install -y rdma-core-devel
-  RDMA_FLAG=ON
 else
-  RDMA_FLAG=OFF
+  # The manylinux2014 image (CentOS 7, Python 3.6/3.7) is end of life and its
+  # mirrors are gone: use the CentOS vault, which keeps the final 7.9 packages.
+  sed -i -e 's|^mirrorlist=|#mirrorlist=|' \
+         -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' \
+         /etc/yum.repos.d/*.repo
+  yum install -y rdma-core-devel
 fi
 
 # CMake from PyPI: the CentOS 7 based manylinux2014 image has a version that
@@ -31,6 +33,6 @@ cmake -S /tmp/libnfs -B /tmp/libnfs/build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local \
   -DCMAKE_INSTALL_LIBDIR=lib \
-  -DENABLE_RDMA=$RDMA_FLAG
+  -DENABLE_RDMA=ON
 cmake --build /tmp/libnfs/build -j"$(nproc)"
 cmake --install /tmp/libnfs/build
