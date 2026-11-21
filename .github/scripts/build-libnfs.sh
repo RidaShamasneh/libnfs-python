@@ -16,7 +16,8 @@ else
   sed -i -e 's|^mirrorlist=|#mirrorlist=|' \
          -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' \
          /etc/yum.repos.d/*.repo
-  yum install -y rdma-core-devel
+  # The SCLo repositories are not on the vault for aarch64, and are not needed.
+  yum install -y --disablerepo='centos-sclo-*' rdma-core-devel
 fi
 
 # CMake from PyPI: the CentOS 7 based manylinux2014 image has a version that
