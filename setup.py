@@ -26,7 +26,7 @@ name = 'libnfs'
 # The wheels bundle libnfs master (LIBNFS_REF in
 # .github/scripts/build-libnfs.sh), so this is a post-release of the last
 # libnfs tag, 8.1.0.
-version = '8.1.0.post2'
+version = '8.1.0.post3'
 readme = 'README.md'
 with open(readme, "r") as f:
     long_description = f.read()
