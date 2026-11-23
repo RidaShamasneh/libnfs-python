@@ -35,10 +35,12 @@ jobs:
   wheels:
     name: Build wheels (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
-    env:
-      # Temporary: libnfs with RDMA loaded through dlopen(), not yet upstream.
-      LIBNFS_REPO: https://github.com/RidaShamasneh/libnfs.git
-      LIBNFS_REF: rdma-dlopen
+    # By default the wheels bundle upstream libnfs master. To build against a
+    # fork or branch that is not upstream yet, uncomment and adjust; remove
+    # again once the feature is merged (see .github/scripts/build-libnfs.sh).
+    # env:
+    #   LIBNFS_REPO: https://github.com/RidaShamasneh/libnfs.git
+    #   LIBNFS_REF: some-feature-branch
     strategy:
       fail-fast: false
       matrix:
